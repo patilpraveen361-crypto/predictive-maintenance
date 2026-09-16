@@ -153,27 +153,20 @@ tab1, tab2 = st.tabs(["📉 Waterfall Plot", "📋 Input Feature Table"])
 
 with tab1:
     try:
-        explainer = shap.TreeExplainer(model)
-        shap_values = explainer.shap_values(input_df)
+        explainer = shap.Explainer(model)
+        shap_values = explainer(input_df)
 
-        # Handle binary classification outputs
-        if isinstance(shap_values, list):
-            vals = shap_values[1][0]
-            base_val = explainer.expected_value[1]
+        # Slice for the failure class (class 1) and the single input sample
+        if len(shap_values.shape) == 3:
+            single_explanation = shap_values[0, :, 1]
         else:
-            vals = shap_values[0]
-            base_val = explainer.expected_value
-
-        # Construct SHAP Explanation object
-        exp = shap.Explanation(
-            values=vals,
-            base_values=base_val,
-            data=input_df.iloc[0],
-            feature_names=feature_names
-        )
+            single_explanation = shap_values[0]
 
         fig, ax = plt.subplots(figsize=(10, 5))
-        shap.plots.waterfall(exp, show=False)
+        fig.patch.set_facecolor('#0E1117')
+        ax.set_facecolor('#0E1117')
+        
+        shap.plots.waterfall(single_explanation, show=False)
         st.pyplot(fig)
     except Exception as e:
         st.error(f"Error generating SHAP plot: {e}")
