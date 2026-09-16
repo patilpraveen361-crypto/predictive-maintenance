@@ -144,22 +144,40 @@ with col3:
 st.divider()
 
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # 6. EXPLAINABLE AI (SHAP DIAGNOSTICS)
 # -----------------------------------------------------------------------------
 st.subheader("📊 Explainable AI Diagnostics (SHAP Analysis)")
 st.write("Understand which specific sensor metrics drove the machine failure risk calculation.")
 
-explainer = shap.TreeExplainer(model)
-shap_values = explainer(input_df)
-
 tab1, tab2 = st.tabs(["📉 Waterfall Plot", "📋 Input Feature Table"])
 
 with tab1:
-    fig, ax = plt.subplots(figsize=(10, 5))
-    fig.patch.set_facecolor('#0E1117')
-    ax.set_facecolor('#0E1117')
-    shap.plots.waterfall(shap_values[0], show=False)
-    st.pyplot(fig)
+    try:
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer.shap_values(input_df)
+
+        # Handle binary classification outputs
+        if isinstance(shap_values, list):
+            vals = shap_values[1][0]
+            base_val = explainer.expected_value[1]
+        else:
+            vals = shap_values[0]
+            base_val = explainer.expected_value
+
+        # Construct SHAP Explanation object
+        exp = shap.Explanation(
+            values=vals,
+            base_values=base_val,
+            data=input_df.iloc[0],
+            feature_names=feature_names
+        )
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        shap.plots.waterfall(exp, show=False)
+        st.pyplot(fig)
+    except Exception as e:
+        st.error(f"Error generating SHAP plot: {e}")
 
 with tab2:
     st.markdown("##### Current Sensor Readouts")
